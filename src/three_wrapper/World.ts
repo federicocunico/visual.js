@@ -5,10 +5,11 @@ import { createRenderer } from "./Renderer";
 import createTerrain from "./Terrain";
 import type { Loop } from "./Loop";
 import { Resizer } from "./Resizer";
-import { LocalLoop } from "./loops/LocalLoop";
-import { PerspectiveCamera, Scene, WebGLRenderer, Vector3, Color, BoxGeometry, Mesh, SphereGeometry, DirectionalLight, MeshStandardMaterial, AxesHelper } from "three";
+import { LocalLoop } from "./LocalLoop";
+import { PerspectiveCamera, Scene, WebGLRenderer, Vector3, Color, BoxGeometry, Mesh, SphereGeometry, DirectionalLight, MeshStandardMaterial, AxesHelper, type ColorRepresentation, Light, PlaneGeometry } from "three";
 import { OrbitControls } from "three/examples/jsm/Addons.js";
-
+import { PrimitiveFactory } from "./Pool";
+import { Skeleton } from "./Skeleton";
 
 class World {
     camera: PerspectiveCamera = null as any;
@@ -17,11 +18,16 @@ class World {
     loop: Loop = null as any;
     controls: OrbitControls = null as any;
 
+    pooler: PrimitiveFactory = null as any;
+
     constructor(container: HTMLElement, backgroundColor: string | number = "lightgray", addLights: boolean = true) {
         // Instances of camera, scene, and renderer
         this.camera = createCamera();
         this.scene = createScene(backgroundColor);
         this.renderer = createRenderer();
+
+        this.pooler = new PrimitiveFactory(this.scene);
+
         this.loop = new LocalLoop(this.camera, this.scene, this.renderer);
         container.appendChild(this.renderer.domElement);
 
@@ -48,10 +54,47 @@ class World {
         }
     }
 
-    clearWorld(): void {
-        while (this.scene.children.length > 0) {
-            this.scene.remove(this.scene.children[0]);
+    setUp(addReferenceSystem: boolean = true): void {
+        if (addReferenceSystem) {
+            this.addReferenceSystem();
         }
+        this.addPlane(20, 20, "gray");
+    }
+
+    clearWorld(onlyObjects: boolean = true): void {
+        this.scene.children.forEach(child => {
+            if (onlyObjects) {
+                // if a reference system, don't remove it
+                if (child instanceof AxesHelper || child instanceof Light) {
+                    return;
+                }
+
+                if (child instanceof Mesh) {
+                    if (child.geometry instanceof PlaneGeometry) {
+                        return;
+                    }
+                    child.visible = false;
+                }
+            }
+            else {
+                // this.scene.remove(child);
+                child.visible = false;
+            }
+        });
+        // if (onlyObjects) {
+        //     // remove all objects from the scene
+        //     this.scene.children.forEach(child => {
+        //         if (child instanceof Mesh) {
+        //             this.scene.remove(child);
+        //         }
+        //     });
+        // }
+        // else {
+        //     // remove all objects and lights from the scene
+        //     this.scene.children.forEach(child => {
+        //         this.scene.remove(child);
+        //     });
+        // }
     }
 
     setUpdateFunction(updateFunction: any): void {
@@ -76,37 +119,52 @@ class World {
         const axesHelper = new AxesHelper(size); // You can adjust the size of the axes
         axesHelper.position.set(position.x, position.y, position.z);
         // Add the AxesHelper to the scene
-        this.addToWorld(axesHelper);
+        this.scene.add(axesHelper);
     }
 
-    addPlane(sizeX: number = 20, sizeY: number = 20, color: Color | string | number = "gray"): void {
+    addSkeleton(points: Array<Vector3>, colors: Array<ColorRepresentation> = [], links: Array<Array<number>> = []) {
+        let skeleton = new Skeleton(points, colors, links);
+        let meshes = skeleton.getMeshToAdd();
+        meshes.forEach(mesh => {
+            this.scene.add(mesh);
+        });
+    }
+
+    addPlane(sizeX: number = 20, sizeY: number = 20, color: ColorRepresentation = "gray"): void {
         let terrain = createTerrain(sizeX, sizeY, color);
-        this.addToWorld(terrain);
+        this.scene.add(terrain);
+        // this.addToWorld(terrain);
     }
 
-    addCube(position: Vector3, size: Vector3, color: Color | string | number): Mesh {
-        const geometry = new BoxGeometry(size.x, size.y, size.z);
-        const material = new MeshStandardMaterial({ color: color });
-        const cube = new Mesh(geometry, material);
-        // cube.castShadow = true;
+    addCube(position: Vector3, size: Vector3, color: ColorRepresentation): Mesh {
+        let cube = this.pooler.getCube();
+        cube.visible = true;
+        cube.scale.set(size.x, size.y, size.z);
+        cube.material = new MeshStandardMaterial({ color: color });
         cube.position.set(position.x, position.y, position.z);
-        this.addToWorld(cube);
+        // this.addToWorld(cube);
         return cube;
     }
 
-    addSphere(positionL: Vector3, radius: number, color: Color | string | number): Mesh {
-        const geometry = new SphereGeometry(radius, radius, radius);
-        const material = new MeshStandardMaterial({ color: color });
-        const sphere = new Mesh(geometry, material);
+    addSphere(positionL: Vector3, radius: number, color: ColorRepresentation): Mesh {
+        let sphere = this.pooler.getSphere();
+        sphere.visible = true;
+        sphere.scale.set(radius, radius, radius);
+        sphere.material = new MeshStandardMaterial({ color: color });
         sphere.position.set(positionL.x, positionL.y, positionL.z);
-        this.addToWorld(sphere);
+        // this.addToWorld(sphere);
         return sphere;
     }
 
-    addToWorld(object: any): void {
-        // loop.addUpdatable(object); // loop.updatables.push(light);
-        this.scene.add(object);
-    }
+    // addToWorld(object: any): void {
+    //     // if object already in scene, set visible=true
+    //     // if (this.scene.children.includes(object)) {
+    //     //     object.visible = true;
+    //     // }
+    //     // else {
+    //     //     this.scene.add(object);
+    //     // }
+    // }
 
     render(): void {
         if (this.controls) {

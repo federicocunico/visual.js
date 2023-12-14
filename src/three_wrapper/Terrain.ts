@@ -3,10 +3,11 @@ import {
     Mesh,
     MeshBasicMaterial,
     DoubleSide,
-    Color
+    Color,
+    type ColorRepresentation
 } from "three";
 
-export default function createTerrain(sizeX: number, sizeY: number, color: Color | string | number) {
+export default function createTerrain(sizeX: number, sizeY: number, color: ColorRepresentation) {
     const geometry = new PlaneGeometry(sizeX, sizeY);
     const material = new MeshBasicMaterial({ color: color, side: DoubleSide });  // without shadows (otherwise use MeshStandardMaterial)
     const plane = new Mesh(geometry, material);

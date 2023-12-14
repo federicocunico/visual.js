@@ -1,17 +1,15 @@
 import type { PerspectiveCamera, Scene, WebGLRenderer } from "three";
-import type { Loop } from "../Loop";
+import type { Loop } from "./Loop";
 
-class NetworkLoop implements Loop {
+class LocalLoop implements Loop {
     camera: PerspectiveCamera
     scene: Scene
     renderer: WebGLRenderer
-    updatables: any[]
 
     constructor(camera: PerspectiveCamera, scene: Scene, renderer: WebGLRenderer) {
         this.camera = camera;
         this.scene = scene;
         this.renderer = renderer;
-        this.updatables = [];
     }
 
     start() {
@@ -26,7 +24,16 @@ class NetworkLoop implements Loop {
         this.renderer.setAnimationLoop(null);
     }
 
-    update(): void {
-    }
+    update() {
+        // const delta = clock.getDelta();
+        // this.renderer.render(this.scene, this.camera);
+        // // for (const object of this.updatables) {
+        // //     // console.log(object);
+        // //     // object.tick(delta);
+        // // }
 
+        // Identity function, updated from world.setUpdateFunction()
+    }
 }
+
+export { LocalLoop }
