@@ -1,43 +1,66 @@
 import type { ColorRepresentation, Mesh, Vector3 } from "three";
 import { createSphere, createLinkMesh } from "./Geometry";
+import { PrimitiveFactory } from "./Pool";
+import type { MeshLink } from "./MeshLink";
 
 class Skeleton {
-    points: Array<Vector3> = [];
+    name: string = "";
+    joints: Array<Vector3> = [];
     links: Array<Array<number>> = [];
 
     spheres: Array<Mesh> = [];
-    linksMesh: Array<Mesh> = [];
+    linksMesh: Array<MeshLink> = [];
+
+    colors: Array<ColorRepresentation> = [];
+    jointRadius: number = 0.1;
 
     constructor(
         points: Array<Vector3>,
         colors: Array<ColorRepresentation> = [],
         links: Array<Array<number>> = [],
+        name: string = "",
         jointRadius: number = 0.1,
     ) {
-        this.points = points;
+        this.name = name;
+        this.joints = points;
+        this.colors = colors;
         this.links = links;
-
-        this.points.forEach((point, index) => {
-            let color;
-            if (colors.length < index) {
-                color = colors[index];
-            }
-            else {
-                color = "gray";
-            }
-            const sphere = createSphere(jointRadius, color);
-            sphere.position.copy(point);
-            this.spheres.push(sphere);
-        });
-
-        this.links.forEach((link, index) => {
-            const linkMesh = createLinkMesh(this.points[link[0]], this.points[link[1]]);
-            this.linksMesh.push(linkMesh);
-        });
+        this.jointRadius = jointRadius;
     }
 
-    getMeshToAdd(): Array<Mesh> {
-        return this.spheres.concat(this.linksMesh);
-    }
+    // build(pool: PrimitiveFactory): void {
+    //     this.joints.forEach((point, index) => {
+    //         let color;
+    //         if (this.colors.length < index) {
+    //             color = this.colors[index];
+    //         }
+    //         else {
+    //             color = "gray";
+    //         }
+    //         const sphere = pool.getSphere(this.jointRadius, color);
+    //         sphere.position.set(point.x, point.y, point.z);
+    //         this.spheres.push(sphere);
+    //     });
+
+    //     if (false) {
+    //         this.links.forEach((link, index) => {
+    //             if (link.length != 2) throw new Error("Link must have two points");
+    //             if (link[0] < 0 || link[1] < 0) throw new Error("Link must have positive points");
+    //             let pt1 = this.joints[link[0]];
+    //             let pt2 = this.joints[link[1]];
+
+    //             const linkMesh = pool.getLink(pt1, pt2);
+    //             this.linksMesh.push(linkMesh);
+    //         });
+    //     }
+    // }
+
+    // getMeshToAdd(): Array<Mesh> {
+    //     let allMeshes = [] as Array<Mesh>;
+    //     allMeshes.push(...this.spheres);
+    //     allMeshes.push(...this.linksMesh.map(link => link.mesh));
+    //     return allMeshes;
+    // }
 }
+
 export { Skeleton }

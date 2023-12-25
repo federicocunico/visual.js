@@ -10,51 +10,18 @@
     "launch": {
         "version": "0.2.0",
         "configurations": [
-            // node webserver
+            // Server python
             {
                 "name": "Server",
-                "type": "node",
-                "request": "launch",
-                "program": "${workspaceFolder}/server.js",
-                "cwd": "${workspaceFolder}",
-                "env": {
-                    "NODE_ENV": "development"
-                }
-            },
-            // python client
-            {
-                "name": "Client",
                 "type": "python",
                 "request": "launch",
-                "program": "${workspaceFolder}/client.py",
-                "cwd": "${workspaceFolder}",
+                "program": "${workspaceFolder}/server.py",
                 "console": "integratedTerminal",
                 "env": {
                     "PYTHONPATH": "${workspaceFolder}"
-                }
-            },
-            // npm run dev
-            {
-                "name": "Dev Build",
-                "type": "node",
-                "request": "launch",
-                "program": "vite",
-                "cwd": "${workspaceFolder}",
-                "console": "integratedTerminal",
-                "internalConsoleOptions": "neverOpen"
+                },
+                "cwd": "${workspaceFolder}"
             }
         ],
-        "compounds": [
-            {
-                "name": "Server/Test Client/Dev Build",
-                "configurations": [
-                    "Server",
-                    "Dev Build",
-                    "Client"
-                ],
-                "preLaunchTask": "${defaultBuildTask}",
-                "stopAll": true
-            }
-        ]
-    }
+    },
 }

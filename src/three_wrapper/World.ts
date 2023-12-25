@@ -10,6 +10,7 @@ import { PerspectiveCamera, Scene, WebGLRenderer, Vector3, Color, BoxGeometry, M
 import { OrbitControls } from "three/examples/jsm/Addons.js";
 import { PrimitiveFactory } from "./Pool";
 import { Skeleton } from "./Skeleton";
+import { distanceTo } from "./Geometry";
 
 class World {
     camera: PerspectiveCamera = null as any;
@@ -122,11 +123,28 @@ class World {
         this.scene.add(axesHelper);
     }
 
-    addSkeleton(points: Array<Vector3>, colors: Array<ColorRepresentation> = [], links: Array<Array<number>> = []) {
-        let skeleton = new Skeleton(points, colors, links);
-        let meshes = skeleton.getMeshToAdd();
-        meshes.forEach(mesh => {
-            this.scene.add(mesh);
+    addSkeleton(
+        points: Array<Vector3>,
+        colors: Array<ColorRepresentation> = [],
+        links: Array<Array<number>> = [],
+        name: string = "",
+    ) {
+        let skeletonSize = 0.2;
+        points.forEach((point, idx) => {
+            let sphere = this.pooler.getSphere(skeletonSize, colors[idx]);
+            sphere.visible = true;
+            sphere.position.set(point.x, point.y, point.z);
+        })
+
+        links.forEach(link => {
+            let pt1 = points[link[0]];
+            let pt2 = points[link[1]];
+            // let linkMesh = this.pooler.getLink(pt1, pt2);
+            // linkMesh.mesh.visible = true;
+            
+            // Create line
+            // let line = this.pooler.getLine(pt1, pt2, "gray");
+            // line.visible = true;
         });
     }
 

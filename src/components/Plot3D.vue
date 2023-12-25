@@ -2,10 +2,11 @@
 import { onMounted, ref } from 'vue';
 import { World } from '@/three_wrapper/World';
 import axios from 'axios';
-import { Mesh, Vector3 } from 'three';
+import { Mesh, Vector3, type ColorRepresentation, Color } from 'three';
 import { UriBuilder } from '@/uri';
 import { SERVER_IP, SERVER_PORT, DATA_API } from '@/settings';
 import { CircularBuffer } from '@/utils';
+import { Skeleton } from '@/three_wrapper/Skeleton';
 
 const MAX_FPS = 60;
 // const curr_FPS = ref<number>(MAX_FPS);
@@ -48,7 +49,6 @@ function getMeshesFromServer() {
     let startTime = new Date().getTime();
     axios.get(uri).then((response) => {
         // debugger;
-        // console.log(world.scene.children)
         world.clearWorld();
 
         let rawData = response.data as any;
@@ -58,8 +58,18 @@ function getMeshesFromServer() {
             world.addSphere(point, 1, "red");
         });
 
-        // debugger;
-        // let skeletons = [] as Array<any>;
+        let sks = rawData.skeletons as Array<Skeleton>;
+        // convert colors from [0,1] to [0,255]
+        sks.forEach((skeleton: Skeleton) => {
+            skeleton.colors.forEach((color: ColorRepresentation, idx: number) => {
+                let c = color as Color;
+                if (c.r > 1 || c.g > 1 || c.b > 1) {
+                    return;
+                }
+                skeleton.colors[idx] = new Color(c.r * 255, c.g * 255, c.b * 255);
+            });
+            world.addSkeleton(skeleton.joints, skeleton.colors, skeleton.links, skeleton.name);
+        });
 
         waitingForServer = false;
 
