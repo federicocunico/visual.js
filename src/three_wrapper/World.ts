@@ -139,8 +139,8 @@ class World {
         links.forEach(link => {
             let pt1 = points[link[0]];
             let pt2 = points[link[1]];
-            // let linkMesh = this.pooler.getLink(pt1, pt2);
-            // linkMesh.mesh.visible = true;
+            let linkMesh = this.pooler.getLink(pt1, pt2);
+            linkMesh.mesh.visible = true;
             
             // Create line
             // let line = this.pooler.getLine(pt1, pt2, "gray");
