@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref } from "vue";
+import { io } from 'socket.io-client';
 import { World } from "@/three_wrapper/World";
 import axios from "axios";
 import { Mesh, Vector3, type ColorRepresentation, Color } from "three";
@@ -12,6 +13,9 @@ const target_requests_per_second = 60;
 const average_ms_per_request_buffer: CircularBuffer<number> = new CircularBuffer(target_requests_per_second * 10);
 const average_ms_per_request = ref("0.00");
 const container = ref<HTMLElement | null>(null);
+
+let socket: any = undefined;
+
 var waitingForServer = false;
 
 let world: World = null as any;
@@ -38,6 +42,34 @@ function main() {
 	enableControls(true);
 }
 
+function applyNewData(rawData: any) {
+
+	world.clearWorld();
+
+	let points = rawData.points.map((a: { x: number, y: number, z: number }) => new Vector3(a.x, a.y, a.z)) as Array<Vector3>;
+	points.forEach((point: Vector3) => {
+		world.addSphere(point, 1, "red");
+	});
+
+	let sks = rawData.skeletons as Array<Skeleton>;
+	// convert colors from [0,1] to [0,255]
+	sks.forEach((skeleton: Skeleton) => {
+		skeleton.colors.forEach((color: ColorRepresentation, idx: number) => {
+			let c = color as Color;
+			if (c.r > 1 || c.g > 1 || c.b > 1) {
+				return;
+			}
+			skeleton.colors[idx] = new Color(c.r * 255, c.g * 255, c.b * 255);
+		});
+		world.addSkeleton(
+			skeleton.joints.map((a) => new Vector3(a.x, a.y, a.z)),
+			skeleton.colors,
+			skeleton.links,
+			skeleton.name
+		);
+	});
+}
+
 async function getMeshesFromServer() {
 	const uri = new UriBuilder(SERVER_IP, SERVER_PORT, DATA_API, "http").build();
 	if (waitingForServer) {
@@ -49,35 +81,8 @@ async function getMeshesFromServer() {
 		let startTime = new Date().getTime();
 
 		var response = await axios.get(uri);
-		// debugger;
 
-		world.clearWorld();
-
-		let rawData = response.data as any;
-		// const rawData = JSON.parse(test) as any;
-
-		let points = rawData.points.map((a: any) => new Vector3(a.x, a.y, a.z)) as Array<Vector3>;
-		points.forEach((point: Vector3) => {
-			world.addSphere(point, 1, "red");
-		});
-
-		let sks = rawData.skeletons as Array<Skeleton>;
-		// convert colors from [0,1] to [0,255]
-		sks.forEach((skeleton: Skeleton) => {
-			skeleton.colors.forEach((color: ColorRepresentation, idx: number) => {
-				let c = color as Color;
-				if (c.r > 1 || c.g > 1 || c.b > 1) {
-					return;
-				}
-				skeleton.colors[idx] = new Color(c.r * 255, c.g * 255, c.b * 255);
-			});
-			world.addSkeleton(
-				skeleton.joints.map((a) => new Vector3(a.x, a.y, a.z)),
-				skeleton.colors,
-				skeleton.links,
-				skeleton.name
-			);
-		});
+		applyNewData(response.data);
 
 		let endTime = new Date().getTime();
 		let currFps = endTime - startTime;
@@ -123,16 +128,44 @@ function getAverageMsPerRequest(): string {
 
 let getDataInterval: ReturnType<typeof setInterval> | undefined;
 
+function connectToServer(mode: string) {
+	if (mode == "REST") {
+		getDataInterval = setInterval(() => {
+			getMeshesFromServer();
+		}, 1000 / target_requests_per_second);
+	}
+	else if (mode == "WEBSOCKET") {
+		let serverSocketAddr = new UriBuilder(SERVER_IP, SERVER_PORT, "", "http").build();
+		socket = io(serverSocketAddr); // Update with your server URL
+
+		socket.on('connect', () => {
+			console.log('Connected to server');
+		});
+
+		socket.on('data', (data: any) => {
+			// console.log("Received data from server", data);
+			let startTime = new Date().getTime();
+
+			applyNewData(data);
+
+			let endTime = new Date().getTime();
+			let currFps = endTime - startTime;
+			average_ms_per_request_buffer.push(currFps);
+
+			average_ms_per_request.value = getAverageMsPerRequest();
+		});
+	}
+}
+
 onMounted(() => {
 	main();
 
-	getDataInterval = setInterval(() => {
-		getMeshesFromServer();
-	}, 1000 / target_requests_per_second);
+	connectToServer("WEBSOCKET");
 });
 
 onUnmounted(() => {
 	clearInterval(getDataInterval);
+	socket.disconnect();
 });
 </script>
 
@@ -142,8 +175,8 @@ h5 Scene elements: {{ getSceneElementsCount() }}
 
 //- Controls
 div
-    button(@click="enableControls(true)") Enable Controls
-    button(@click="enableControls(false)") Disable Controls
+	button(@click="enableControls(true)") Enable Controls
+	button(@click="enableControls(false)") Disable Controls
 
 //- Three js container
 div(ref="container")

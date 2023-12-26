@@ -1,12 +1,20 @@
 from collections import OrderedDict
+from datetime import datetime
 import json
+from threading import Thread
+import time
 
 # import pydantic
 import flask
+
 from flask_cors import CORS
+from flask_socketio import SocketIO
 
 app = flask.Flask(__name__)
 CORS(app)
+socketio = SocketIO(app, cors_allowed_origins="*")
+
+send_thread = None
 
 
 @app.route("/data", methods=["GET"])
@@ -17,9 +25,33 @@ def data():
     return flask.jsonify(data)
 
 
+def send_data():
+    while True:
+        # Simulating some data generation
+        data_file = "data.json"
+        with open(data_file, "r") as f:
+            data = json.load(f)
+
+        socketio.emit("data", data)
+        time.sleep(0.001)
+
+
+@socketio.on("connect")
+def handle_connect():
+    global send_thread
+    print("Client connected")
+
+    # send_data()
+    if send_thread is None:
+        # just one for server
+        send_thread = Thread(target=send_data)
+        send_thread.start()
+
+
 # run the application
 if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0", port=11000)
+    # app.run(debug=True, host="0.0.0.0", port=11000)
+    socketio.run(app, debug=True, host="0.0.0.0", port=11000)
 
 """
 # test
