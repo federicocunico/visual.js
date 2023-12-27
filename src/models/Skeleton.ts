@@ -1,7 +1,5 @@
-import type { ColorRepresentation, Mesh, Vector3 } from "three";
-import { createSphere, createLinkMesh } from "./Geometry";
-import { PrimitiveFactory } from "./Pool";
-import type { MeshLink } from "./MeshLink";
+import type { Color, Mesh, Vector3 } from "three";
+import { MeshLink } from "@/three_wrapper/MeshLink";
 
 class Skeleton {
     name: string = "";
@@ -11,12 +9,12 @@ class Skeleton {
     spheres: Array<Mesh> = [];
     linksMesh: Array<MeshLink> = [];
 
-    colors: Array<ColorRepresentation> = [];
+    colors: Array<Color> = [];
     jointRadius: number = 0.1;
 
     constructor(
         points: Array<Vector3>,
-        colors: Array<ColorRepresentation> = [],
+        colors: Array<Color> = [],
         links: Array<Array<number>> = [],
         name: string = "",
         jointRadius: number = 0.1,

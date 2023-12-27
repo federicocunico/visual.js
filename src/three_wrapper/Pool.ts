@@ -88,7 +88,8 @@ class PrimitiveFactory {
 		return candidate;
 	}
 
-	getLink(pt1: Vector3, pt2: Vector3): MeshLink {
+	getLink(pt1: Vector3, pt2: Vector3, color: ColorRepresentation | null = null): MeshLink {
+		if (color == null) color = "red";
 		let candidate = this.linkPool.get();
 		if (candidate == null) {
 			candidate = new MeshLink(pt1, pt2)
@@ -98,6 +99,7 @@ class PrimitiveFactory {
 		else {
 			candidate.update(pt1, pt2)
 		}
+		candidate.setColor(color);
 		return candidate;
 	}
 

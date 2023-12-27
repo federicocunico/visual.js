@@ -6,7 +6,7 @@ import createTerrain from "./Terrain";
 import type { Loop } from "./Loop";
 import { Resizer } from "./Resizer";
 import { LocalLoop } from "./LocalLoop";
-import { PerspectiveCamera, Scene, WebGLRenderer, Vector3, Mesh, MeshStandardMaterial, AxesHelper, type ColorRepresentation, Light, PlaneGeometry } from "three";
+import { PerspectiveCamera, Scene, WebGLRenderer, Vector3, Mesh, MeshStandardMaterial, AxesHelper, type ColorRepresentation, Light, PlaneGeometry, Color } from "three";
 import { OrbitControls } from "three/examples/jsm/Addons.js";
 import { PrimitiveFactory } from "./Pool";
 
@@ -124,7 +124,7 @@ class World {
 
     addSkeleton(
         points: Array<Vector3>,
-        colors: Array<ColorRepresentation> = [],
+        colors: Array<Color> = [],
         links: Array<Array<number>> = [],
         name: string = "",
     ) {
@@ -135,10 +135,21 @@ class World {
             sphere.position.set(point.x, point.y, point.z);
         })
 
-        links.forEach(link => {
+        links.forEach((link, idx) => {
             let pt1 = points[link[0]];
             let pt2 = points[link[1]];
-            let linkMesh = this.pooler.getLink(pt1, pt2);
+            
+            let c1 = colors[link[0]];
+            let c2 = colors[link[1]];
+            let linkColor;
+            if (c1.r == c2.r && c1.g == c2.g && c1.b == c2.b){
+                linkColor = c1;
+            }
+            else{
+                linkColor = "gray";
+            }
+
+            let linkMesh = this.pooler.getLink(pt1, pt2, linkColor);
             linkMesh.mesh.visible = true;
 
             // Create line

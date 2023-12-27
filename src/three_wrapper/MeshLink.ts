@@ -1,4 +1,4 @@
-import { CylinderGeometry, Mesh, MeshStandardMaterial, Vector3, MathUtils } from "three";
+import { CylinderGeometry, Mesh, MeshStandardMaterial, Vector3, MathUtils, type ColorRepresentation } from "three";
 import { distanceTo } from "./Geometry";
 
 class MeshLink {
@@ -30,6 +30,10 @@ class MeshLink {
 		this.point1 = point1;
 		this.point2 = point2;
 		this.updatePositionRotationScale(this.mesh, this.point1, this.point2);
+	}
+
+	setColor(color: ColorRepresentation): void {
+		(this.mesh.material as any).color.set(color);
 	}
 
 	private updatePositionRotationScale(mesh: Mesh, point1: Vector3, point2: Vector3) {

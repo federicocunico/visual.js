@@ -7,7 +7,8 @@ import { Vector3, type ColorRepresentation, Color } from "three";
 import { UriBuilder } from "@/uri";
 import { SERVER_IP, SERVER_PORT, DATA_API } from "@/settings";
 import { CircularBuffer } from "@/utils";
-import { Skeleton } from "@/three_wrapper/Skeleton";
+import { Skeleton } from "@/models/Skeleton";
+import { Point } from "@/models/Point";
 
 const target_requests_per_second = 60;
 const average_ms_per_request_buffer: CircularBuffer<number> = new CircularBuffer(target_requests_per_second * 10);
@@ -49,20 +50,32 @@ function applyNewData(rawData: any) {
 
 	world.name = rawData.name;
 
-	let points = rawData.points.map((a: { x: number, y: number, z: number }) => new Vector3(a.x, a.y, a.z)) as Array<Vector3>;
-	points.forEach((point: Vector3) => {
-		world.addSphere(point, 1, "red");
+	// let points = rawData.points.map((a: { x: number, y: number, z: number }) => new Vector3(a.x, a.y, a.z)) as Array<Vector3>;
+	let points = rawData.points.map(
+		(a: any) => new Point(
+			new Vector3(a.location.x, a.location.y, a.location.z),
+			a.size,
+			new Color(a.color.r, a.color.g, a.color.b)
+		)
+	)
+	points.forEach((point: Point) => {
+		if (point.location == null || point.color == null || point.size == null) {
+			console.warn("Point data is null");
+			return;
+		}
+		world.addSphere(point.location, point.size, point.color);
 	});
 
 	let sks = rawData.skeletons as Array<Skeleton>;
 	// convert colors from [0,1] to [0,255]
 	sks.forEach((skeleton: Skeleton) => {
-		skeleton.colors.forEach((color: ColorRepresentation, idx: number) => {
+		skeleton.colors.forEach((color: any, idx: number) => {
 			let c = color as Color;
 			if (c.r > 1 || c.g > 1 || c.b > 1) {
-				return;
+				skeleton.colors[idx] = new Color(c.r, c.g, c.b);
+			} else {
+				skeleton.colors[idx] = new Color(c.r * 255, c.g * 255, c.b * 255);
 			}
-			skeleton.colors[idx] = new Color(c.r * 255, c.g * 255, c.b * 255);
 		});
 		world.addSkeleton(
 			skeleton.joints.map((a) => new Vector3(a.x, a.y, a.z)),
@@ -152,7 +165,7 @@ function connectToServer(mode: string = "WEBSOCKET") {
 		socket.on("disconnect", () => {
 			console.log("Disconnected from server");
 			serverConnected.value = false;
-			world.clearWorld();	
+			world.clearWorld();
 		})
 
 		socket.on('data', (data: any) => {
@@ -182,6 +195,12 @@ onUnmounted(() => {
 	clearInterval(getDataInterval);
 	socket.disconnect();
 });
+
+function reconnect() {
+	socket.disconnect();
+	connectToServer();
+}
+
 </script>
 
 <template lang="pug">
@@ -195,8 +214,9 @@ h5(v-else) Connected:
 
 //- Controls
 div
-	button(@click="enableControls(true)") Enable Controls
-	button(@click="enableControls(false)") Disable Controls
+	button.btn.btn-secondary(@click="enableControls(true)") Enable Controls
+	button.btn.btn-secondary(@click="enableControls(false)") Disable Controls
+	button.btn.btn-success(@click="reconnect") Reconnect
 
 //- Three js container
 div(ref="container")
@@ -212,3 +232,4 @@ div(ref="container")
 	color: green
 }
 </style>
+@/models/Skeleton@/backend_models/Skeleton@/backend_models/Point@/models/Skeleton@/models/Point
