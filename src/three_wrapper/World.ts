@@ -6,13 +6,12 @@ import createTerrain from "./Terrain";
 import type { Loop } from "./Loop";
 import { Resizer } from "./Resizer";
 import { LocalLoop } from "./LocalLoop";
-import { PerspectiveCamera, Scene, WebGLRenderer, Vector3, Color, BoxGeometry, Mesh, SphereGeometry, DirectionalLight, MeshStandardMaterial, AxesHelper, type ColorRepresentation, Light, PlaneGeometry } from "three";
+import { PerspectiveCamera, Scene, WebGLRenderer, Vector3, Mesh, MeshStandardMaterial, AxesHelper, type ColorRepresentation, Light, PlaneGeometry } from "three";
 import { OrbitControls } from "three/examples/jsm/Addons.js";
 import { PrimitiveFactory } from "./Pool";
-import { Skeleton } from "./Skeleton";
-import { distanceTo } from "./Geometry";
 
 class World {
+    name: string = "";
     camera: PerspectiveCamera = null as any;
     renderer: WebGLRenderer = null as any;
     scene: Scene = null as any;
@@ -141,7 +140,7 @@ class World {
             let pt2 = points[link[1]];
             let linkMesh = this.pooler.getLink(pt1, pt2);
             linkMesh.mesh.visible = true;
-            
+
             // Create line
             // let line = this.pooler.getLine(pt1, pt2, "gray");
             // line.visible = true;

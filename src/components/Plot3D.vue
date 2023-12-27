@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from "vue";
+import { onMounted, onUnmounted, ref, computed } from "vue";
 import { io } from 'socket.io-client';
 import { World } from "@/three_wrapper/World";
 import axios from "axios";
-import { Mesh, Vector3, type ColorRepresentation, Color } from "three";
+import { Vector3, type ColorRepresentation, Color } from "three";
 import { UriBuilder } from "@/uri";
 import { SERVER_IP, SERVER_PORT, DATA_API } from "@/settings";
 import { CircularBuffer } from "@/utils";
@@ -13,6 +13,7 @@ const target_requests_per_second = 60;
 const average_ms_per_request_buffer: CircularBuffer<number> = new CircularBuffer(target_requests_per_second * 10);
 const average_ms_per_request = ref("0.00");
 const container = ref<HTMLElement | null>(null);
+const serverConnected = ref(false);
 
 let socket: any = undefined;
 
@@ -45,6 +46,8 @@ function main() {
 function applyNewData(rawData: any) {
 
 	world.clearWorld();
+
+	world.name = rawData.name;
 
 	let points = rawData.points.map((a: { x: number, y: number, z: number }) => new Vector3(a.x, a.y, a.z)) as Array<Vector3>;
 	points.forEach((point: Vector3) => {
@@ -104,8 +107,11 @@ function enableControls(value: boolean) {
 	world.enableControls(value);
 }
 
-function getSceneElementsCount() {
-	return world?.scene.children.length;
+function getSceneElementsCount(): string {
+	if (!world) {
+		return "<not initialized>";
+	}
+	return world?.scene.children.length.toString();
 }
 
 function getAverageMsPerRequest(): string {
@@ -128,7 +134,7 @@ function getAverageMsPerRequest(): string {
 
 let getDataInterval: ReturnType<typeof setInterval> | undefined;
 
-function connectToServer(mode: string) {
+function connectToServer(mode: string = "WEBSOCKET") {
 	if (mode == "REST") {
 		getDataInterval = setInterval(() => {
 			getMeshesFromServer();
@@ -140,7 +146,14 @@ function connectToServer(mode: string) {
 
 		socket.on('connect', () => {
 			console.log('Connected to server');
+			serverConnected.value = true;
 		});
+
+		socket.on("disconnect", () => {
+			console.log("Disconnected from server");
+			serverConnected.value = false;
+			world.clearWorld();	
+		})
 
 		socket.on('data', (data: any) => {
 			// console.log("Received data from server", data);
@@ -155,12 +168,14 @@ function connectToServer(mode: string) {
 			average_ms_per_request.value = getAverageMsPerRequest();
 		});
 	}
+	else {
+		throw new Error("Invalid mode");
+	}
 }
 
 onMounted(() => {
 	main();
-
-	connectToServer("WEBSOCKET");
+	connectToServer();
 });
 
 onUnmounted(() => {
@@ -170,8 +185,13 @@ onUnmounted(() => {
 </script>
 
 <template lang="pug">
-h1 3D Plot Viewer (ms per request: {{ average_ms_per_request }})
+h1 Visual.js (ms per request: {{ average_ms_per_request }})
+h3 Scene name: {{ world?.name }}
 h5 Scene elements: {{ getSceneElementsCount() }}
+h5(v-if="!serverConnected") Waiting for server... 
+	i.bi.bi-x-circle-fill.red
+h5(v-else) Connected:
+	i.bi.bi-check-circle-fill.green
 
 //- Controls
 div
@@ -182,3 +202,13 @@ div
 div(ref="container")
 
 </template>
+
+<style scoped lang="scss">
+.red {
+	color: red
+}
+
+.green {
+	color: green
+}
+</style>

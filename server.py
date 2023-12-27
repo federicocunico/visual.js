@@ -1,12 +1,11 @@
-from collections import OrderedDict
-from datetime import datetime
 import json
+import pickle
 from threading import Thread
 import time
 
 # import pydantic
 import flask
-
+from flask import request
 from flask_cors import CORS
 from flask_socketio import SocketIO
 
@@ -14,87 +13,75 @@ app = flask.Flask(__name__)
 CORS(app)
 socketio = SocketIO(app, cors_allowed_origins="*")
 
+### Global variables
+clients = []
 send_thread = None
+current_state = None
+###
 
 
+### Rest APIs
 @app.route("/data", methods=["GET"])
-def data():
+def data() -> flask.Response:
     data_file = "data.json"
     with open(data_file, "r") as f:
         data = json.load(f)
     return flask.jsonify(data)
 
 
-def send_data():
+### SocketIO
+def send_data_DEBUG() -> None:
+    data_file = "data.json"
+    with open(data_file, "r") as f:
+        current_state = json.load(f)
     while True:
         # Simulating some data generation
-        data_file = "data.json"
-        with open(data_file, "r") as f:
-            data = json.load(f)
-
-        socketio.emit("data", data)
+        socketio.emit("data", current_state)
         time.sleep(0.001)
 
 
-@socketio.on("connect")
-def handle_connect():
-    global send_thread
-    print("Client connected")
+def send_data() -> None:
+    while True:
+        if current_state is None:
+            continue
+        socketio.emit("data", current_state)
+        time.sleep(0.001)
 
-    # send_data()
+
+@socketio.on("update")
+def handle_update(data: str | dict) -> None:
+    print("New data received")
+    global current_state
+    if isinstance(data, str):
+        data = json.loads(data)
+    current_state = data
+
+
+@socketio.on("save")
+def handle_save(data: dict) -> None:
+    data_file = "data_saving.pkl"
+    with open(data_file, "wb") as f:
+        pickle.dump(data, f)
+    print("Data saved")
+
+
+@socketio.on("connect")
+def handle_connect() -> None:
+    global send_thread
+
+    session_id = request.sid
+    if session_id not in clients:
+        clients.append(session_id)
+    print("Client connected", session_id)
+
     if send_thread is None:
         # just one for server
+        # send_thread = Thread(target=send_data_DEBUG)
         send_thread = Thread(target=send_data)
         send_thread.start()
 
 
-# run the application
+### Main
 if __name__ == "__main__":
     # app.run(debug=True, host="0.0.0.0", port=11000)
-    socketio.run(app, debug=True, host="0.0.0.0", port=11000)
-
-"""
-# test
-data_file = "test_data.json"
-with open(data_file, "r") as f:
-    data = json.load(f)
-data_file = "data.json"
-import copy
-
-new_data = copy.deepcopy(data)
-for k, v in data.items():
-    if k == "skeletons":
-        new_data[k] = []
-        for i in range(len(v)):
-            sk = v[i]
-            new_joints = []
-            for joint in sk["joints"]:
-                new_joints.append(
-                    {
-                        "x": joint[0],
-                        "y": joint[1],
-                        "z": joint[2],
-                    }
-                )
-            new_colors = []
-            for color in sk["colors"]:
-                new_colors.append(
-                    {
-                        "r": color[0],
-                        "g": color[1],
-                        "b": color[2],
-                    }
-                )
-
-            sk["joints"] = new_joints
-            sk["colors"] = new_colors
-            new_data[k].append(sk)
-
-    if k == "points":
-        new_data[k] = []
-        for i in range(len(v)):
-            new_data[k].append({"x": v[i][0], "y": v[i][1], "z": v[i][2]})
-
-with open(data_file, "w") as f:
-    json.dump(new_data, f, indent=4)
-"""
+    socketio.run(app, host="0.0.0.0", port=11000)
