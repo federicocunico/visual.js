@@ -16,9 +16,9 @@ jobs:
     - name: Build & Create Artifacts
       uses: actions/setup-node@v3
       with:
-        node-version: 18.x
+        node-version: 18
         cache: 'npm'
-    - run: npm run build --if-present
+    - run: npm install && npm run build --if-present
 
     # - name: Archive artifacts
     #   uses: actions/upload-artifact@v2
