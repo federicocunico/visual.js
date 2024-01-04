@@ -27,10 +27,10 @@ jobs:
         path: dist/
       
     - name: Download artifact
-      uses: actions/download-artifact@v2
+      uses: actions/download-artifact@v4
       with:
         name: index.tar.gz
-        path: ./
+        # path: ./
     - name: Display structure of downloaded files
       run: ls -l && ls index.tar.gz
 
