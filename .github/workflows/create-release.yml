@@ -23,16 +23,16 @@ jobs:
     - name: Archive artifacts
       uses: actions/upload-artifact@v2
       with:
-        name: index
+        name: index.tar.gz
         path: dist/
       
     - name: Download artifact
       uses: actions/download-artifact@v2
       with:
-        name: index
+        name: index.tar.gz
         path: ./
     - name: Display structure of downloaded files
-      run: ls -R
+      run: ls -l && ls index.tar.gz
 
     # - name: Create Release
     #   id: create_release
@@ -53,5 +53,5 @@ jobs:
     #   with:
     #     upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
     #     asset_path: dist/
-    #     asset_name: index.zip
+    #     asset_name: index.tar.gz
     #     asset_content_type: application/zip
