@@ -32,14 +32,22 @@ jobs:
     #     name: index
     #     path: dist/
 
+
+    # https://github.com/marketplace/actions/get-the-upload-url-for-a-release
+    - name: Get release
+      id: get_release
+      uses: bruceadams/get-release@v1.3.2
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+
     - name: Create Release
       id: create_release
       uses: actions/create-release@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: ${{ github.event.workflow_run.head_commit.id }}
-        release_name: Release ${{ github.event.workflow_run.head_commit.id }}
+        tag_name: ${{ github.ref }}
+        release_name: Release ${{ github.ref }}
         draft: false
         prerelease: false
 
@@ -49,7 +57,7 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        upload_url: ${{ steps.get_release.outputs.upload_url }}
         asset_path: dist/
-        asset_name: my-package-js.zip
+        asset_name: index.zip
         asset_content_type: application/zip
