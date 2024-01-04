@@ -32,5 +32,5 @@ jobs:
     - name: Archive artifacts
       uses: actions/upload-artifact@v2
       with:
-        name: index
+        name: index.tar.gz
         path: dist/
